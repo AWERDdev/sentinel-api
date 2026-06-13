@@ -13,7 +13,7 @@ try:
     redis_connect = redis.Redis(
         host=settings.HOST, 
         port=settings.PORT, 
-        decode_responses=settings.DECODE_RESPONSE,
+        decode_responses=settings.DECODE_RESPONSES,
         encoding=settings.ENCODING
     )
     redis_logger.info(f"Successfully connected to Redis on port {settings.PORT}")

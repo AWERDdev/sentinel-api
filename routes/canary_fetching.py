@@ -40,9 +40,9 @@ def fetch_canary_token_by_id(token_id: str):
     """Fetches full token configurations directly via their tracking UUID strings."""
     logger.info(f"fetch canary token by id route called for: {token_id}")
 
-    raw_data = redis_connect.get(f"canary:token:{token_id}")
+    raw_token_data = redis_connect.get(f"canary:token:{token_id}")
     
-    if not raw_data:
+    if not raw_token_data:
         logger.warning(f"Token lookup failed for ID: {token_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -50,11 +50,11 @@ def fetch_canary_token_by_id(token_id: str):
         )
     
     # Robust decoding: ensure bytes are converted to string before JSON parsing
-    if isinstance(raw_data, bytes):
-        raw_data = raw_data.decode('utf-8')
+    if isinstance(raw_token_data, bytes):
+        raw_token_data = raw_token_data.decode('utf-8')
         
     logger.info("canary token raw data fetched")
-    return json.loads(raw_data)
+    return json.loads(raw_token_data)
 
 
 # ==========================================
@@ -80,16 +80,16 @@ def fetch_canary_token_by_name(name: str):
     token_id_str = token_id.decode('utf-8') if isinstance(token_id, bytes) else token_id
 
     # Step 2: Use the found ID to grab the full profile model data from Redis
-    raw_data = redis_connect.get(f"canary:token:{token_id_str}")
+    raw_token_data = redis_connect.get(f"canary:token:{token_id_str}")
     
-    if not raw_data:
+    if not raw_token_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="canary token payload data missing"
         )
 
     # Decode if necessary and return
-    if isinstance(raw_data, bytes):
-        raw_data = raw_data.decode('utf-8')
+    if isinstance(raw_token_data, bytes):
+        raw_token_data = raw_token_data.decode('utf-8')
 
-    return json.loads(raw_data)
+    return json.loads(raw_token_data)

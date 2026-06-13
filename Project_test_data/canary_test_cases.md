@@ -40,6 +40,14 @@ JSON
   "name": "Production Database Honey Key",
   "alert_email": "security@company.local"
 }
+Example Request Body Used in testing
+
+{
+  "token_type": "http",
+  "name": "Production Passwords File Cleartext AWERD dev http",
+  "alert_email": "myEmail@gmail.com"
+}
+
 Example Response (201 Created)
 JSON
 {

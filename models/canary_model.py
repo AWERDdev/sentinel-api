@@ -1,15 +1,22 @@
-from pydantic import BaseModel , Field ,EmailStr
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict
 
-class CanaryToken(BaseModel):
-    token_ID: str = Field(..., description="This is the unique ID for the token")
+# 1. This is what you expect from Postman
+class CanaryTokenCreate(BaseModel):
     token_type: str = Field(..., description="This decides what kind of token it is")
     name: str = Field(..., description="This is an easy way to find specific tokens")
-    alert_email: EmailStr = Field(..., description="where to send the alert message if triggered")
-    created_at: datetime = Field(..., description="The date when the token is made")
-    is_active: bool = Field(default=True)
-    auth_string: Optional[str] = Field(None, description="The actual fake password/key/URL given to the user")
-    status: str = Field(default="ACTIVE")
-    breach_count: int = Field(default=0)
+    alert_email: str = Field(..., description="where to send the alert message if triggered") 
+
+# 2. This is what you store in Redis
+class CanaryToken(BaseModel):
+    token_ID: str
+    token_type: str
+    name: str
+    alert_email: str
+    created_at: datetime = Field(default_factory=datetime.utcnow) # Automatically tracks time
+    is_active: bool = True
+    auth_string: Optional[str] = None
+    status: str = "ACTIVE"
+    breach_count: int = 0
     logs: List[Dict] = Field(default_factory=list)

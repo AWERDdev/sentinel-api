@@ -1,0 +1,27 @@
+[
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "https://http://127.0.0.1:8000/canary/trigger/a89a831e-618b-45b1-a5cf-311b6fc00f26",
+    "Token_ID": "a89a831e-618b-45b1-a5cf-311b6fc00f26",
+    "Token_Name": "Production Passwords File Cleartext",
+    "Status": "will not  be tested for deletion"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "http://127.0.0.1:8000/canary/trigger/a84cb512-1bc8-4964-ad35-94bc622959db",
+    "Token_ID": "a84cb512-1bc8-4964-ad35-94bc622959db",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev http"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "http://127.0.0.1:8000/canary/trigger/2a2daafd-acda-402f-a495-a4b72472cd8b",
+    "Token_ID": "2a2daafd-acda-402f-a495-a4b72472cd8b",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev https"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "aws_access_key_id=AKIA_B9534635-A13A-4C\naws_secret_access_key=fake_secret_b9534635-a13a-4cef-9173-168d5545ba2e",
+    "Token_ID": "b9534635-a13a-4cef-9173-168d5545ba2e",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev https"
+}
+]
