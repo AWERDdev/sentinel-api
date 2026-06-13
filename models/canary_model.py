@@ -1,6 +1,6 @@
 from pydantic import BaseModel , Field ,EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 
 class CanaryToken(BaseModel):
     token_ID: str = Field(..., description="This is the unique ID for the token")
@@ -10,3 +10,6 @@ class CanaryToken(BaseModel):
     created_at: datetime = Field(..., description="The date when the token is made")
     is_active: bool = Field(default=True)
     auth_string: Optional[str] = Field(None, description="The actual fake password/key/URL given to the user")
+    status: str = Field(default="ACTIVE")
+    breach_count: int = Field(default=0)
+    logs: List[Dict] = Field(default_factory=list)
