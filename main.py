@@ -1,31 +1,22 @@
-from fastapi import FastAPI , requests , HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.StreamHandler(),     # Sends logs to the console
-        logging.FileHandler("app.log") # Also saves logs to a file
-    ]
-)
+from logger_config import setupLogger
+setupLogger()
 
-logger = logging.getLogger(__name__)
+
+from config import ratelimiter
+
+# Fetch the general app logger
+logger = logging.getLogger("app")
 
 app = FastAPI()
 
-
 @app.get('/')
-def welcome_message():
+def welcome_message(request: Request, protected = Depends(ratelimiter)):
     logger.info("API Root endpoint has been called")
-    return({"message":"welcome to canary token generator API"})
+    return {"message": "welcome to canary token generator API"}
 
 @app.get('/canary/DOCS')
 def CanaryDOCS():
     logger.info("canary DOCS have been called")
-
-
-
-# fastapi dev main.py
-# uvicorn main:app --reload
