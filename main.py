@@ -24,6 +24,7 @@ def welcome_message():
     return {"message": "welcome to canary token generator API"}
 
 @app.get('/canary/docs', dependencies=[Depends(ratelimiter)])
+
 def canary_docs():
     """Example endpoint for documentation access."""
     logger.info("canary DOCS have been called")
