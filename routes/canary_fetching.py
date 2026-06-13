@@ -4,7 +4,7 @@ import logging
 import dotenv
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..config import ratelimiter, redis_connect
+from config import ratelimiter, redis_connect
 
 # Load environment variables
 dotenv.load_dotenv()

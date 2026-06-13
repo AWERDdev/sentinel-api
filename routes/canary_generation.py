@@ -5,8 +5,8 @@ from uuid import uuid4
 import dotenv
 from fastapi import APIRouter, Body, Depends, HTTPException,status
 
-from ..config import ratelimiter, redis_connect
-from ..models.canary_model import CanaryToken
+from config import ratelimiter, redis_connect
+from models.canary_model import CanaryToken
 
 # Load environment variables
 dotenv.load_dotenv()

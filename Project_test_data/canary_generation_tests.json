@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "8f3b2a1c-7d6e-4f5a-9b0c-1d2e3f4a5b6c",
+    "name": "Sentinel Canary Token API Testing",
+    "description": "Comprehensive lifecycle testing suite for the honeytoken generation routing subsystem.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Welcome Message Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Successful Token Generation",
+      "item": [
+        {
+          "name": "Generate HTTP Web Beacon Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"http\",\n    \"name\": \"Production Passwords File Cleartext\",\n    \"alert_email\": \"security-alerts@company.local\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate HTTPS Web Beacon Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"https\",\n    \"name\": \"Internal Confluence Wiki Decoy Link\",\n    \"alert_email\": \"soc-team@company.local\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate AWS Credential Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"aws\",\n    \"name\": \"Dev Backup Deployment Honey Key\",\n    \"alert_email\": \"sysadmin-alerts@company.local\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Input Validation & Error Handling",
+      "item": [
+        {
+          "name": "Fail - Invalid Token Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"kube_config\",\n    \"name\": \"Malicious Type Test Object\",\n    \"alert_email\": \"test@company.local\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fail - Malformed Email Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"aws\",\n    \"name\": \"Broken Email Check\",\n    \"alert_email\": \"not-a-valid-email-string\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fail - Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token_type\": \"http\"\n}"
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/canary/generate-token",
+              "protocol": "http",
+              "host": ["127", "0", "0", "1"],
+              "port": "8000",
+              "path": ["canary", "generate-token"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import resend
 import dotenv
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
-from ..config import ratelimiter, redis_connect
+from config import ratelimiter, redis_connect
 
 # Load environment variables
 dotenv.load_dotenv()
