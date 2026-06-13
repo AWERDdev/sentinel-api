@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
 
-from logger_config import setupLogger
+from logger_config.logs_handler import setupLogger
 setupLogger()
 
 
@@ -12,11 +12,13 @@ logger = logging.getLogger("app")
 
 app = FastAPI()
 
-@app.get('/')
-def welcome_message(request: Request, protected = Depends(ratelimiter)):
+@app.get('/',dependencies=[Depends(ratelimiter)])
+def welcome_message():
     logger.info("API Root endpoint has been called")
     return {"message": "welcome to canary token generator API"}
 
-@app.get('/canary/DOCS')
+@app.get('/canary/docs',dependencies=[Depends(ratelimiter)])
 def CanaryDOCS():
     logger.info("canary DOCS have been called")
+
+# fastapi dev main.py
