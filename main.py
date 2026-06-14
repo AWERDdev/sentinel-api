@@ -75,7 +75,7 @@ def welcome_message(request: Request):
         """
         return HTMLResponse(content=html_content, status_code=200)
 
-    return {"message": "welcome to canary token generator API"}
+    return {"message": "welcome to canary token generator API", "status":200}
 
 
 @app.get('/canary/docs', dependencies=[Depends(ratelimiter)])
