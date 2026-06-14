@@ -56,6 +56,7 @@ For full setup steps, environment variables, and Redis verification, see the [Se
 | [API Reference](DOCS/api-reference.md) | Endpoint specifications — methods, request/response examples, status codes, and lifecycle roles |
 | [Setup Guide](DOCS/setup-guide.md) | Environment configuration, local execution, Redis connectivity checks, and troubleshooting |
 | [Design Decisions](DOCS/design-decisions.md) | Engineering rationale — `BackgroundTasks`, token validation, honeypot deception strategy, and more |
+| [Test Fixtures](test-fixtures/README.md) | Postman collection, sample payloads, and manual test scenarios for development and API testing |
 
 ---
 
@@ -73,6 +74,47 @@ For full setup steps, environment variables, and Redis verification, see the [Se
 Interactive OpenAPI docs: `http://127.0.0.1:8000/docs` (when the server is running).
 
 See [API Reference](DOCS/api-reference.md) for full request bodies, response shapes, and error codes.
+
+---
+
+## Development & testing
+
+The [`test-fixtures/`](test-fixtures/) folder provides sample data for **local development** and **API testing**. Use it while building new routes, validating changes, or running regression checks — not as production data.
+
+### What's included
+
+| File | Format | Use |
+|------|--------|-----|
+| [`canary_generation_tests.json`](test-fixtures/canary_generation_tests.json) | Postman Collection v2.1 | Automated requests — health checks, token generation (`http`, `https`, `aws`), and validation error cases |
+| [`canary_test_cases.md`](test-fixtures/canary_test_cases.md) | Markdown | Manual scenarios with example URLs, request bodies, and expected responses across the full canary lifecycle |
+| [`canaryTokens.json`](test-fixtures/canaryTokens.json) | JSON | Sample `201 Created` responses (`Token_ID`, `Canary_Token`, etc.) for reference while debugging response shape |
+
+### Development testing
+
+While implementing or changing API behavior:
+
+- Copy request bodies from the Postman collection or markdown scenarios into Swagger UI (`/docs`), `curl`, or your HTTP client
+- Compare live responses against examples in `canary_test_cases.md` and `canaryTokens.json`
+- Re-run the collection or manual cases after code changes to confirm generation, fetch, trigger, and delete flows still work
+
+### API testing
+
+**Postman** — import `canary_generation_tests.json`, point requests at `http://127.0.0.1:8000`, and run the collection.
+
+**Manual** — follow [`canary_test_cases.md`](test-fixtures/canary_test_cases.md) for health checks, token creation, fetch by ID/name, trigger interception (including the deceptive honeypot response), and error cases.
+
+**Sample data** — use `canaryTokens.json` when testing fetch/delete routes or validating URL and AWS credential formatting without generating new tokens each time.
+
+### Quick workflow
+
+```text
+1. Start Redis + API (see Setup Guide above)
+2. Import canary_generation_tests.json into Postman → run health + generation tests
+3. Walk through canary_test_cases.md for fetch / trigger / delete
+4. Compare responses with canaryTokens.json when validating output shape
+```
+
+Full details, file descriptions, and tips: [test-fixtures README](test-fixtures/README.md).
 
 ---
 
@@ -96,6 +138,7 @@ sentinel-api/
 ├── routes/                 # API route modules
 ├── logger_config/          # Logging setup
 ├── DOCS/                   # Project documentation
+├── test-fixtures/          # Postman collection, sample payloads, manual test cases
 └── requirements.txt
 ```
 

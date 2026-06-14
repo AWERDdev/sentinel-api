@@ -23,5 +23,11 @@
     "Canary_Token": "aws_access_key_id=AKIA_B9534635-A13A-4C\naws_secret_access_key=fake_secret_b9534635-a13a-4cef-9173-168d5545ba2e",
     "Token_ID": "b9534635-a13a-4cef-9173-168d5545ba2e",
     "Token_Name": "Production Passwords File Cleartext AWERD dev https"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "http://127.0.0.1:8000/canary/trigger/e25e1ef5-83da-45a6-b99c-404952ecb706",
+    "Token_ID": "e25e1ef5-83da-45a6-b99c-404952ecb706",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev http"
 }
 ]

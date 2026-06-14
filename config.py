@@ -9,10 +9,10 @@ rate_limiter_logger = logging.getLogger("app.rate_limiter")
 settings = redis_Settings()
 
 # 1. Corrected Redis connection initialization
+
 try:
-    redis_connect = redis.Redis(
-        host=settings.HOST, 
-        port=settings.PORT, 
+    redis_connect = redis.from_url(
+        url=settings.URL,  
         decode_responses=settings.DECODE_RESPONSES,
         encoding=settings.ENCODING
     )

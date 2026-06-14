@@ -50,8 +50,15 @@ def generate_token(data: CanaryTokenCreate = Body(...)):
     token_id = str(uuid4())
     logger.info(f"Created canary token ID {token_id}")
     
+    if not data.name and not data.alert_email and not data.token_type:
+        logger.warning("canary token missing Critical Data please enter complete all empty fields")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="missing token Base data"
+        )
+    
     # Enforce validation on supported honeypot structures
-    allowed_types = ["http", "https", "aws"]
+    allowed_types = ["http", "https", "aws", "web", "url"]
     if token_type_clean not in allowed_types:
         logger.warning(f"Invalid token type attempted: {token_type_clean}")
         raise HTTPException(
@@ -62,7 +69,7 @@ def generate_token(data: CanaryTokenCreate = Body(...)):
     generated_auth = ""
 
     # Construct specific payloads depending on honey token classification
-    if token_type_clean in ["http","https"]:
+    if token_type_clean in ["http","https","web","url"]:
         # Construct the tracking link the attacker will accidentally click
         base_domain = os.getenv('DOMAIN', 'http://127.0.0.1:8000').rstrip('/')
         generated_auth = f"{base_domain}/canary/trigger/{token_id}"

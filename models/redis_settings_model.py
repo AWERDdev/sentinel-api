@@ -11,6 +11,7 @@ class redis_Settings(BaseSettings):
     ENCODING: str = "utf-8"
     MAX_REQUESTS: int = 5
     WINDOW_SECONDS: int = 60
+    URL: str = "redis://localhost:7001/"
     
     model_config = SettingsConfigDict(env_file=".env", env_prefix="REDIS_", extra="ignore")
 
