@@ -1,156 +1,74 @@
-# Flat Bonuses Audit — Evidence & Scoring
+# Flat Bonuses Audit (User-Specified Rubric)
 
-Each bonus requires **active, functional implementation**, not configuration stubs or commented-out code.
-
----
-
-## 1. Persistence Layer — **+0.10 ✅ AWARDED**
-
-**Requirement:** Complex state mutations or records in an external database/key-value store.
-
-### Evidence
-
-| Operation | Key Pattern | File |
-|-----------|-------------|------|
-| CREATE token | `canary:token:{uuid}` ← JSON | `routes/canary_generation.py:91-92` |
-| CREATE name index | `canary:name:{normalized}` ← uuid | `routes/canary_generation.py:95-96` |
-| READ by ID | `GET canary:token:{id}` | `routes/canary_fetching.py:43` |
-| READ by name (2-hop) | name index → token key | `routes/canary_fetching.py:69-83` |
-| UPDATE on trigger | status, breach_count, logs[] | `routes/canary_trigger.py:99-118` |
-| DELETE token + index | `DEL` both keys | `routes/canary_delete.py:52-53, 93-94` |
-| Rate limit counters | `rate_limit:{ip}` INCR/EXPIRE | `config.py:34-39` |
-
-### Stored model shape (`CanaryToken`)
-
-```python
-token_ID, token_type, name, alert_email, created_at,
-is_active, auth_string, status, breach_count, logs[]
-```
-
-**Verdict:** Meets rubric. Redis is the sole datastore with meaningful state mutation on trigger events, not just cache reads.
+Baseline multiplier: **1.0**
 
 ---
 
-## 2. External API Integration — **+0.10 ✅ AWARDED**
+## Persistence (+0.10) — **AWARDED**
 
-**Requirement:** Active, out-of-band network calls to an external service provider.
+| Criterion | Status |
+|-----------|--------|
+| External key-value store | Redis via `redis.from_url` |
+| Complex state mutations | Trigger updates status, breach_count, logs |
+| CRUD lifecycle | Create, read, update (trigger), delete |
+| Secondary indexing | Name → UUID mapping |
 
-### Evidence
-
-```python
-# routes/canary_trigger.py
-resend.api_key = os.getenv("RESEND_API_KEY")
-resend.Emails.send({
-    "from": "CanaryBox <onboarding@resend.dev>",
-    "to": user_email,
-    "subject": f"🚨 BREACH DETECTED: {token_name}",
-    "html": html_content
-})
-```
-
-- Called from `send_security_alert()` via `BackgroundTasks.add_task()` on every successful trigger with a valid `alert_email`.
-- Non-trivial: HTML template includes IP, User-Agent, timestamp.
-- Failure path logged without crashing the request.
-
-**Verdict:** Meets rubric. Resend is a real third-party transactional email API, not a mock.
-
-**Deduction note:** Uses Resend sandbox sender `onboarding@resend.dev` — acceptable for dev/demo but production would need verified domain.
+**Score: +0.10**
 
 ---
 
-## 3. Abuse Prevention & Rate Limiting — **+0.10 ✅ AWARDED**
+## External API integration (+0.10) — **AWARDED**
 
-**Requirement:** Functional endpoint protection with windowed state checks.
+| Criterion | Status |
+|-----------|--------|
+| Out-of-band network call | `resend.Emails.send()` |
+| Non-trivial integration | HTML email construction, API key config |
+| Production path documented | `RESEND_API_KEY`, local testing notes |
 
-### Evidence (`config.py`)
-
-```python
-def ratelimiter(request: Request):
-    client_IP = ...  # X-Forwarded-For or request.client.host
-    redis_key = f"rate_limit:{client_IP}"
-    current_requests = redis_connect.incr(redis_key)
-    if current_requests == 1:
-        redis_connect.expire(redis_key, WINDOW_SECONDS)
-    if current_requests > MAX_REQUESTS:
-        raise HTTPException(status_code=429, ...)
-```
-
-### Coverage
-
-Applied via `dependencies=[Depends(ratelimiter)]` on:
-
-- All four route modules (generate, fetch, trigger, delete)
-- Root `/` and `/canary/docs` in `main.py`
-
-Configurable via `REDIS_MAX_REQUESTS` (default 5) and `REDIS_WINDOW_SECONDS` (default 60).
-
-**Verdict:** Meets rubric. Custom implementation (not a library middleware wrapper only), Redis-backed, windowed.
-
-**Minor flaw:** `INCR` + conditional `EXPIRE` is not a single atomic Lua script — race window exists under extreme concurrency but is acceptable at this scale.
+**Score: +0.10**
 
 ---
 
-## 4. Input Validation & Error Architecture — **+0.05 ✅ AWARDED**
+## Rate limiting / abuse prevention (+0.10) — **AWARDED**
 
-**Requirement:** Pydantic schemas, type casting, HTTPException traps, system logs.
+| Criterion | Status |
+|-----------|--------|
+| Windowed state checks | `INCR` + `EXPIRE` on first request |
+| Redis-backed (not in-memory) | Keys `rate_limit:{ip}` |
+| Returns 429 | Yes |
+| Global coverage | All routes |
 
-### Pydantic input boundary
-
-```python
-class CanaryTokenCreate(BaseModel):
-    token_type: str = Field(...)
-    name: str = Field(...)
-    alert_email: str = Field(...)  # Note: not EmailStr
-```
-
-FastAPI auto-validates JSON body before handler runs.
-
-### Application-level validation
-
-- `token_type.strip().lower()` + allowlist check → `400`
-- Missing token in Redis → `404`
-- Rate limit exceeded → `429`
-- Delete/trigger failures → `500` with logged context
-
-### Logging
-
-- Route-level `logger.info/warning/error` across all handlers
-- Dedicated `app.rate_limiter` and `app.redis` loggers via `setupLogger()`
-
-**Verdict:** Meets rubric. Not exemplary (no `EmailStr`, redundant manual empty-field check that Pydantic already prevents), but clearly qualifies.
+**Score: +0.10**
 
 ---
 
-## 5. Authorization — **+0.00 ❌ NOT AWARDED**
+## Input validation & error architecture (+0.05) — **AWARDED**
 
-No JWT, API keys, or user-token gates on any endpoint. Explicitly documented as out of scope in `DOCS/design-decisions.md`.
+| Criterion | Status |
+|-----------|--------|
+| Pydantic schemas | `CanaryTokenCreate`, `CanaryToken`, `redis_Settings` |
+| Type casting / env | `BaseSettings` with typed ints for rate limits |
+| HTTPException traps | 400/403/404/429/500 across routes |
+| System logs | Three dedicated loggers + file handlers |
 
----
-
-## 6. Pagination — **+0.00 ❌ NOT AWARDED**
-
-No list endpoints. Fetch is by ID or name only. No `limit`/`offset`/`cursor` parameters.
-
----
-
-## 7. Additional Endpoints — **+0.12 ✅ AWARDED (4 × +0.03)**
-
-Minimum viable RaspAPI projects typically require a small CRUD surface. Beyond core generate + fetch + trigger:
-
-| Extra endpoint | Bonus |
-|----------------|-------|
-| `GET /canary/fetch/name/{name}` | +0.03 |
-| `DELETE /canary/delete/id/{token_id}` | +0.03 |
-| `DELETE /canary/delete/name/{token_name}` | +0.03 |
-| `GET /canary/docs` (custom docs hub) | +0.03 |
-
-Cap of 4 extra endpoints reached.
+**Score: +0.05**
 
 ---
 
-## Flat Bonus Totals
+## User-rubric subtotal
 
-| Rubric scope | Sum | Base multiplier |
-|--------------|-----|-----------------|
-| Review brief (4 categories) | +0.35 | **1.35** |
-| Full official RaspAPI | +0.47 | **1.47** (under 1.5 cap) |
+| Bonus | Value |
+|-------|-------|
+| Persistence | +0.10 |
+| External API | +0.10 |
+| Rate limiting | +0.10 |
+| Validation & safety | +0.05 |
+| **Sum** | **+0.35** |
+
+### **Base multiplier (user rubric) = 1.35**
+
+---
+
+## Not in user matrix but relevant for official review
+
+See [full-raspapi-rubric.md](./full-raspapi-rubric.md) for authorization (+0.15), pagination (+0.00), and additional endpoints (+0.12 max).

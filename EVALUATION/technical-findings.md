@@ -1,102 +1,118 @@
-# Technical Findings — Validation & Safety Review
+# Technical Findings — Validation, Safety & Bugs
 
-Objective scan of database interactions, rate limiters, and background mail dispatch.
+## Input validation & error architecture
 
----
+### What works
 
-## Redis Interactions — **Functional with caveats**
+| Mechanism | Evidence |
+|-----------|----------|
+| Pydantic request body | `CanaryTokenCreate` with `EmailStr`, required fields |
+| Token type allowlist | `allowed_types` check with `HTTP 400` |
+| Granular HTTP errors | 400, 403, 404, 429, 500 used appropriately across routes |
+| Auth mismatch → 403 | `utils/canary_verify.py` compares path `auth_string` to stored secret |
+| Structured logging | INFO/WARNING/ERROR at decision points |
 
-### Safe patterns observed
-
-- JSON serialization via `model_dump_json()` on create
-- Explicit key namespaces prevent collision (`canary:`, `rate_limit:`)
-- Delete removes both primary and index keys (no obvious orphan index on ID delete)
-- Trigger append-only log mutation preserves prior entries
-
-### Risks
-
-| Risk | Detail |
-|------|--------|
-| Connection fail-open | App starts even if Redis unreachable |
-| Name index overwrite | No uniqueness lock — duplicate normalized names overwrite index |
-| No TTL on tokens | Tokens persist forever unless deleted |
-| Sync client in async route | Blocks event loop under load |
-| JSON manual dumps on trigger | Bypasses Pydantic re-validation after mutation |
-
----
-
-## Rate Limiter — **Functional**
-
-### Flow
-
-1. Resolve client IP (`X-Forwarded-For` first hop or direct host)
-2. `INCR rate_limit:{ip}`
-3. Set `EXPIRE` on first request in window
-4. Return 429 if count > `MAX_REQUESTS`
-
-### Trust model
-
-Behind reverse proxy, accuracy depends on proxy setting `X-Forwarded-For`. Documented in architecture guide.
-
-### Edge cases
-
-- Shared NAT IPs rate-limit together (expected for IP-based limiting)
-- `INCR` without transaction with `EXPIRE` — minor race if two first requests hit simultaneously
-
-**Bonus eligibility:** ✅ Qualifies as custom Redis-backed abuse prevention.
-
----
-
-## Background Mail Dispatch — **Safely implemented**
-
-```python
-background_tasks.add_task(send_security_alert, user_email, ...)
+```46:52:routes/canary_generation.py
+    allowed_types = ["http", "https", "aws", "web", "url"]
+    if token_type_clean not in allowed_types:
+        logger.warning(f"Invalid token type attempted: {token_type_clean}")
+        raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Invalid token type. Choose from: {', '.join(allowed_types)}"
+        )
 ```
 
-### Strengths
-
-- Email sent after response prepared — attacker gets immediate honeypot JSON
-- `send_security_alert` wraps Resend in try/except — logs failure, no unhandled exception
-- Only queued when `alert_email` present
-
-### Weaknesses
-
-- No retry on Resend failure
-- No idempotency — repeated triggers send multiple emails (may be desired)
-- `RESEND_API_KEY` unset → silent send failure logged only
-- HTML injection: `token_name`, `attacker_ip`, `user_agent` interpolated raw into HTML (low risk — values come from request headers controlled by attacker on trigger, could affect email rendering)
+**Verdict:** Earns the **+0.05 validation bonus**. Not exhaustive (no UUID format validation on path params, no request size limits), but meets RaspAPI "proper error handling & input validation" bar.
 
 ---
 
-## Input Validation Gaps
+## Persistence layer
 
-| Field | Issue |
-|-------|-------|
-| `alert_email` | Any string accepted — invalid emails fail at Resend, not at API |
-| `token_type` | Allowlist enforced ✅ |
-| `name` | No length/special-char limits |
-| Path params | No UUID format validation on `{token_id}` |
+### Operations verified
 
----
+| Operation | File | Redis commands |
+|-----------|------|----------------|
+| Create token | `canary_generation.py` | `SET` primary + name index |
+| Read token | `canary_fetching.py`, `canary_trigger.py` | `GET` |
+| Update on trigger | `canary_trigger.py` | `GET` → mutate JSON → `SET` |
+| Delete token | `canary_delete.py` | `DEL` primary + index |
+| Rate limit | `config.py` | `INCR`, `EXPIRE` |
 
-## Exceptional Design Patterns
+Trigger mutations include `status`, `breach_count`, and append-only `logs` with IP, user-agent, timestamp — **complex state mutation**, not read-only caching.
 
-1. **Honeypot deception layer** — Security through obscurity done intentionally; attacker sees fake server meltdown
-2. **Dual-index Redis schema** — Practical O(1) name lookup without SCAN
-3. **Breach telemetry on token document** — Single-key incident history without separate audit table
-4. **Accept-header HTML on root** — Small UX polish for browser visits vs API clients
+**Verdict:** **+0.10 persistence** justified.
 
 ---
 
-## Bug Register
+## External API integration (Resend)
 
-| ID | Severity | File:Line | Description |
-|----|----------|-----------|-------------|
-| B1 | Medium | `canary_trigger.py:76-78` | Docstring inside `try` block |
-| B2 | Medium | All route files | Duplicate `GET /canary/` handlers |
-| B3 | High | `config.py:20-21` | Redis failure leaves undefined client |
-| B4 | Low | `canary_generation.py:53-58` | Unreachable validation branch |
-| B5 | Low | `main.py:10` | Typo `canary_featch_router` |
-| B6 | Info | `design-decisions.md` | Docs list 3 token types; code allows 5 |
+```49:54:routes/canary_trigger.py
+         resend.Emails.send({
+            "from": "CanaryBox <onboarding@resend.dev>",
+            "to": user_email,
+            "subject": f"🚨 BREACH DETECTED: {token_name}",
+            "html": html_content
+         })
+```
 
-None of these block flat bonus eligibility; they affect architecture discretionary score.
+- Active outbound HTTP to Resend infrastructure
+- HTML template with breach metadata
+- Async via `BackgroundTasks`
+- Errors caught and logged
+
+**Caveat:** Free-tier sender domain (`onboarding@resend.dev`) restricts recipients — documented in `routes/localEmail_testing.md`.
+
+**Verdict:** **+0.10 external API** justified (non-trivial transactional email).
+
+---
+
+## Rate limiting / abuse prevention
+
+```25:47:config.py
+def ratelimiter(request: Request):
+    ...
+    redis_key = f"rate_limit:{client_IP}"
+    current_requests = redis_connect.incr(redis_key)
+    if current_requests == 1:
+        redis_connect.expire(redis_key, WINDOW_SECONDS)
+    if current_requests > MAX_REQUESTS:
+        raise HTTPException(status_code=429, ...)
+```
+
+- Windowed counter stored in Redis (not in-memory)
+- Configurable via `REDIS_MAX_REQUESTS` / `REDIS_WINDOW_SECONDS`
+- Applied to all 9 route handlers
+
+**Verdict:** **+0.10 rate limiting** justified.
+
+---
+
+## Potential bugs & security notes
+
+| Severity | Issue | Detail |
+|----------|-------|--------|
+| Medium | Redis startup failure | App starts without valid client; runtime crashes |
+| Medium | Open token generation | No auth on `POST /generate-token` |
+| Medium | Name collision | Duplicate names overwrite index key |
+| Low | X-Forwarded-For trust | Client can spoof IP in logs if not behind trusted proxy |
+| Low | Field naming | `CanaryToken` Pydantic field vs model class name collision risk |
+| Low | Race on trigger | Concurrent triggers can lose log entries (last-write-wins JSON) |
+| Info | Typo in errors | `"Cannary token not found"` in verify helper |
+| Info | README drift | Fetch/delete URLs omit required `{auth_string}` path segment |
+
+---
+
+## Endpoint inventory
+
+| Method | Path | Rate limited | Auth |
+|--------|------|--------------|------|
+| GET | `/` | Yes | No |
+| GET | `/canary/docs` | Yes | No |
+| POST | `/canary/generate-token` | Yes | No |
+| GET | `/canary/fetch/id/{token_id}/{auth_string}` | Yes | Per-token secret |
+| GET | `/canary/fetch/name/{name}/{auth_string}` | Yes | Per-token secret |
+| GET | `/canary/trigger/{token_id}` | Yes | No (intentional — honeypot) |
+| DELETE | `/canary/delete/id/{token_id}/{auth_string}` | Yes | Per-token secret |
+| DELETE | `/canary/delete/name/{name}/{auth_string}` | Yes | Per-token secret |
+
+**RaspAPI minimum:** 3 GET + 1 POST — **exceeded** (5+ GET, 1 POST, 2 DELETE).

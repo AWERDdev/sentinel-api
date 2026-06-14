@@ -1,79 +1,75 @@
 # Discretionary Multiplier Scoring
 
-Hack Club RaspAPI applies two post-cap multipliers:
+Official RaspAPI buffs (from program docs):
 
-- **Exceptional code quality / architecture:** up to **×1.2**
-- **Cool project / originality:** up to **×1.3**
+| Buff | Multiplier |
+|------|------------|
+| Cool project | ×1.3 |
+| Exceptional code quality / architecture | ×1.2 |
 
-These stack **multiplicatively** on the flat base multiplier.
-
----
-
-## Architecture Multiplier — **×1.15**
-
-### What reviewers typically look for
-
-| Signal | Present? |
-|--------|----------|
-| `/routes`, `/models`, `/config` separation | ✅ |
-| Unified logging factory | ✅ |
-| Environment-driven settings | ✅ Partial |
-| Docstrings on endpoints | ✅ Most routes |
-| External documentation | ✅ Strong |
-| No duplicated dead code | ❌ 4× welcome route |
-| Fail-fast infrastructure | ❌ Redis connect |
-| Test coverage | ❌ Manual fixtures only |
-| Consistent async/sync model | ❌ |
-
-### Comparison to peer YSWS submissions
-
-Above average for a first API project: modular routers, design docs, and honeypot threat-model writeups exceed typical "CRUD todo app" submissions.
-
-Below top tier: missing auth, tests, and polish issues (typo imports, docstring placement) prevent full ×1.2.
-
-**Range applied in payout model:** ×1.05 (conservative) – ×1.18 (optimistic)  
-**Point estimate:** **×1.15**
+These stack **multiplicatively** on top of the flat-bonus base.
 
 ---
 
-## Originality Multiplier — **×1.22**
+## Architecture multiplier — **×1.15** (range: ×1.10 – ×1.20)
 
-### Concept: Honeypot Canary Token Service
+### Points earned
 
-**Problem solved:** Detect unauthorized access when decoy credentials/URLs embedded in configs, repos, or env files are touched.
+- Clean `/routes`, `/models`, `/config`, `/utils` separation
+- Unified logging factory with domain-specific log files
+- Environment handling via Pydantic `BaseSettings` (`redis_Settings`)
+- Extensive handwritten documentation (`DOCS/`, README, test fixtures)
+- Thoughtful design-decisions doc explaining trade-offs
+- FastAPI `BackgroundTasks` used correctly for email isolation
+- Content-negotiated HTML root endpoint
 
-**Differentiators:**
+### Points withheld (why not ×1.20)
 
-1. **Multi-format decoys** — HTTP(S) tracking URLs and fake AWS credential blocks (`AKIA_{token_id}`)
-2. **Attacker deception** — Returns humorous fake error JSON instead of "you triggered a canary"
-3. **Out-of-band alerting** — Email with IP, UA, timestamp via Resend
-4. **Stateful incident log** — Per-token `logs[]` and `breach_count` in Redis
+- Inconsistent indentation and style in `canary_trigger.py`
+- Confusing field naming (`auth_string` vs `CanaryToken` payload field)
+- Auth helper not wired as FastAPI `Depends`
+- No automated tests or CI
+- Incomplete `requirements.txt`
+- Sync blocking Redis inside async route
+- README/API docs partially out of sync with auth path params
+- `POST /generate-token` lacks operator authentication
 
-### Prior art context
+### Reviewer realism
 
-Commercial/open-source canary token systems exist (Thinkst Canarytokens, AWS honey tokens). This project is **not wholly novel** but is **highly creative for a teen-built YSWS API** — especially the deceptive response copy and AWS-format generation.
+For a teenager YSWS submission, this is **above average** structure — closer to "good portfolio project" than "exceptional production architecture." A strict reviewer lands at **×1.15**; a generous one may grant **×1.20** if documentation weight is valued heavily.
 
-### Originality tier mapping
-
-| Tier | Multiplier | Fit |
-|------|------------|-----|
-| Generic CRUD clone | ×1.0 | — |
-| Useful niche tool | ×1.10–×1.15 | — |
-| **Creative security utility with clear real-world use** | **×1.18–×1.25** | **← ×1.22** |
-| Exceptional / never seen before | ×1.28–×1.30 | Not quite |
-
-**Range applied in payout model:** ×1.15 (conservative) – ×1.28 (optimistic)  
-**Point estimate:** **×1.22**
+**Assigned: ×1.15**
 
 ---
 
-## Combined discretionary effect
+## Originality multiplier — **×1.25** (range: ×1.15 – ×1.30)
+
+### Points earned
+
+- **Security honeypot canary tokens** — creative, problem-driven concept
+- Multi-format decoys (HTTP tripwire URL, fake AWS credential block)
+- Deceptive attacker-facing response (returns fake "panic" JSON instead of revealing trap)
+- Out-of-band operator alerting (email with forensic metadata)
+- Clear real-world use case: detect credential leaks and unauthorized access
+
+### Points withheld (why not ×1.30)
+
+- Canary tokens are an established industry pattern (Thinkst Canary, Canarytokens.org)
+- Scope is a single-service CRUD API without novel ML, graph analysis, or multi-tenant features
+- Trigger endpoint is a straightforward GET logger — clever deception text, but mechanically simple
+
+### Reviewer realism
+
+Concept is **meaningfully cooler than a todo API or random data CRUD** — warrants a "cool project" buff. Full **×1.30** is possible if the reviewer values the security angle and deceptive UX; **×1.25** is a fair critical middle ground.
+
+**Assigned: ×1.25**
+
+---
+
+## Combined discretionary product
 
 ```
-Flat base (brief):     1.35
-× Architecture:        1.15
-× Originality:         1.22
-= Total multiplier:    1.894
+×1.15 × ×1.25 = ×1.4375
 ```
 
-Discretionary buff contributes **+40%** over flat base alone — originality carries slightly more weight than architecture in this submission.
+(Range across reviewer variance: **×1.265 – ×1.560**)
