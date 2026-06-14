@@ -1,15 +1,17 @@
 import logging
+import os
 
 def setupLogger():
     log_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-
-    app_handler = logging.FileHandler("app.log")
+    log_dir = "/tmp/" if os.environ.get("VERCEL") else ""
+    
+    app_handler = logging.FileHandler(f"{log_dir}app.log")
     app_handler.setFormatter(log_format)
 
-    ratelimit_handler = logging.FileHandler("rate_limiter.log")
+    ratelimit_handler = logging.FileHandler(f"{log_dir}rate_limiter.log")
     ratelimit_handler.setFormatter(log_format)
 
-    redis_handler =  logging.FileHandler("redis.log")
+    redis_handler =  logging.FileHandler(f"{log_dir}redis.log")
     redis_handler.setFormatter(log_format)
 
     console_handler = logging.StreamHandler()
