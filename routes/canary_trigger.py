@@ -128,12 +128,13 @@ async def trigger_canary(token_id: str, request: Request, background_tasks: Back
          )
      
      # Return a completely deceptive response to keep the intruder clueless
-         return {
-  "status": "panik",
-  "code": "SERVER_HAS_LEFT_THE_CHAT",
-  "message": "Something went horribly wrong. We blamed the intern, but honestly, it was probably your payload :).",
-  "Your_Problem_not_mine": "It worked on my machine. ¯\\_(ツ)_/¯"
-}
+     return {
+        "status": "panik",
+        "code": "SERVER_HAS_LEFT_THE_CHAT",
+        "message": "Something went horribly wrong. We blamed the intern, but honestly, it was probably your payload :).",
+        "Your_Problem_not_mine": "It worked on my machine. ¯\\_(ツ)_/¯"
+    }
+
     except Exception as e:
         logger.error(f"failed to trigger canary token {e}")
         raise HTTPException(
