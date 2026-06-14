@@ -1,9 +1,11 @@
-import json
 import logging
+import os
 
 import dotenv
 from fastapi import APIRouter, Depends, HTTPException, status
 
+# Import both authentication dependencies
+from utils.canary_verify import verify_token_owner, verify_token_owner_by_name
 from config import ratelimiter, redis_connect
 
 # Load environment variables
@@ -25,40 +27,32 @@ router = APIRouter(
 # ==========================================
 # 1. DELETE BY TOKEN ID
 # ==========================================
-@router.delete('/delete/id/{token_id}', dependencies=[Depends(ratelimiter)])
-def delete_canary_by_id(token_id: str): 
-    try:   
-        logger.info(f"Token delete request received starting delete process for Token With ID: {token_id}")
-             
-        token_key = f"canary:token:{token_id}"
-        raw_token_data = redis_connect.get(token_key)
-             
-        if not raw_token_data:
-            logger.warning(f"Canary token with this id wasn't found: {token_id}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Canary token wasn't found"
-            )
-             
-        if isinstance(raw_token_data, bytes):
-            raw_token_data = raw_token_data.decode('utf-8')
-            
-        # FIX: Changed json.load() to json.loads()
-        data_dict = json.loads(raw_token_data)
-        token_name = data_dict.get("name")
-
+@router.delete('/delete/id/{token_id}/{auth_string}', dependencies=[Depends(ratelimiter)])
+def delete_canary_by_id(token_id: str,auth_string:str): 
+    """
+    Deletes token configuration and its secondary name index safely.
+    The verify_token_owner dependency handles ownership checks and drops 404s automatically.
+    """
+    token_data = verify_token_owner(token_id, auth_string)
+    try:    
+        logger.info(f"Authorized delete request running for Token ID: {token_id}")
+        
+        # 1. Run validation outside of the try block so 404/403 exceptions pass through cleanly
+       
+        # Extract the name from token_data (which the dependency already looked up and parsed for us!)
+        token_name = token_data.get("name")
         name_key = f"canary:name:{token_name.replace(' ', '_').lower()}"
+        token_key = f"canary:token:{token_id}"
 
+        # Clean delete both keys out of Redis storage
         redis_connect.delete(token_key)
         redis_connect.delete(name_key)
              
-        logger.info(f"Token {token_id} and index {name_key} deleted successfully.")
+        logger.info(f"Token {token_id} and index {name_key} successfully dropped.")
         return {"message": f"Token with ID {token_id} deleted successfully."}
 
-    except HTTPException as http_ex:
-        raise http_ex
     except Exception as e:
-        logger.error(f"Failed to delete canary token by id {token_id}. Error: {e}")
+        logger.error(f"Failed to execute database delete operation for ID {token_id}. Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error occurred during deletion"
@@ -68,39 +62,33 @@ def delete_canary_by_id(token_id: str):
 # ==========================================
 # 2. DELETE BY TOKEN NAME
 # ==========================================
-@router.delete('/delete/name/{token_name}', dependencies=[Depends(ratelimiter)])
-def delete_canary_by_name(token_name: str):
+@router.delete('/delete/name/{name}/{auth_string}', dependencies=[Depends(ratelimiter)])
+def delete_canary_by_name(name: str,auth_string:str ):
+    """
+    Resolves name mappings securely via secondary index lookups, 
+    verifies ownership, and wipes target configuration parameters cleanly out of memory.
+    """
+    token_data = verify_token_owner_by_name(name,auth_string)
     try:
-        logger.info(f"Token delete request received starting delete process for Token With Name: {token_name}")
+        logger.info(f"Authorized delete request running for Token Name: {name}")
              
-        name_key = f"canary:name:{token_name.replace(' ', '_').lower()}"
+        # Extract the ID from the payload provided by our name dependency
         
-        # Look up the ID first from the secondary name index
-        token_id = redis_connect.get(name_key)
-             
-        if not token_id:
-            logger.warning(f"Canary token index with this name wasn't found: {token_name}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Canary token name index wasn't found"
-            )
-            
-        if isinstance(token_id, bytes):
-            token_id = token_id.decode('utf-8')
-
+        token_id = token_data.get("token_ID")
+        
+        name_key = f"canary:name:{name.replace(' ', '_').lower()}"
         token_key = f"canary:token:{token_id}"
 
+        # Clean delete both keys out of Redis storage
         redis_connect.delete(token_key)
         redis_connect.delete(name_key)
              
-        logger.info(f"Token {token_id} and index {name_key} deleted successfully.")
-        return {"message": f"Token '{token_name}' deleted successfully."}
+        logger.info(f"Token {token_id} and index {name_key} successfully dropped.")
+        return {"message": f"Token '{name}' deleted successfully."}
 
-    except HTTPException as http_ex:
-        raise http_ex
     except Exception as e:
-        logger.error(f"Failed to delete canary token by name {token_name}. Error: {e}")
+        logger.error(f"Failed to execute database delete operation for Name {name}. Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error occurred during deletion"
-        )   
+        )

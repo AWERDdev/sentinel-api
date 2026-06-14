@@ -29,5 +29,19 @@
     "Canary_Token": "http://127.0.0.1:8000/canary/trigger/e25e1ef5-83da-45a6-b99c-404952ecb706",
     "Token_ID": "e25e1ef5-83da-45a6-b99c-404952ecb706",
     "Token_Name": "Production Passwords File Cleartext AWERD dev http"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "http://127.0.0.1:8000/canary/trigger/84c606b3-d5cf-4feb-b7fc-76a5439e8d85",
+    "Token_ID": "84c606b3-d5cf-4feb-b7fc-76a5439e8d85",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev testing verfication",
+    "auth__string": "82c0cddd-1954-46f9-ac8f-f89afbd374f6"
+},
+{
+    "message": "your token has been generated successfully",
+    "Canary_Token": "http://127.0.0.1:8000/canary/trigger/46acbe0e-f6bc-450c-8a38-7956b7cce8a3",
+    "Token_ID": "46acbe0e-f6bc-450c-8a38-7956b7cce8a3",
+    "Token_Name": "Production Passwords File Cleartext AWERD dev testing verfication2",
+    "auth__string": "e85c4d5c-3321-425d-8790-91f7aab8a5a0"
 }
 ]

@@ -6,9 +6,9 @@ from fastapi.responses import HTMLResponse
 # Import your local configuration and modules
 from config import ratelimiter
 from logger_config.logs_handler import setupLogger
-from routes.canary_generation import router as canary_generation_router  # Renamed here!
-from routes.canary_fetching import router as canary_featch_router      # Renamed here!
-from routes.canary_trigger import router as canary_trigger_router        # Renamed here!
+from routes.canary_generation import router as canary_generation_router  
+from routes.canary_fetching import router as canary_featch_router      
+from routes.canary_trigger import router as canary_trigger_router        
 from routes.canary_delete import router as canary_delete_router
 
 # 1. Initialization

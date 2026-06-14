@@ -25,16 +25,6 @@ router = APIRouter(
 )
 
 # ==========================================
-# 1. WELCOME ENDPOINT
-# ==========================================
-@router.get('/', dependencies=[Depends(ratelimiter)])
-def welcome_message():
-    """Simple health check and welcome route for the canary setup."""
-    logger.info("Canary route Has been called")
-    return {"message": "Welcome to canary route this is where you create fetch your canary tokens"}
-
-
-# ==========================================
 # 2. TOKEN GENERATION ENDPOINT
 # ==========================================
 @router.post('/generate-token', dependencies=[Depends(ratelimiter)], status_code=status.HTTP_201_CREATED)
@@ -48,14 +38,9 @@ def generate_token(data: CanaryTokenCreate = Body(...)):
 
     # Unique identification token assignment
     token_id = str(uuid4())
+    auth_string = str(uuid4())
+
     logger.info(f"Created canary token ID {token_id}")
-    
-    if not data.name and not data.alert_email and not data.token_type:
-        logger.warning("canary token missing Critical Data please enter complete all empty fields")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="missing token Base data"
-        )
     
     # Enforce validation on supported honeypot structures
     allowed_types = ["http", "https", "aws", "web", "url"]
@@ -84,7 +69,8 @@ def generate_token(data: CanaryTokenCreate = Body(...)):
         token_type=token_type_clean,
         name=data.name,
         alert_email=data.alert_email,
-        auth_string=generated_auth
+        auth_string=auth_string,
+        CanaryToken=generated_auth
     )
     
     # Redis Primary Key Storage
@@ -99,5 +85,6 @@ def generate_token(data: CanaryTokenCreate = Body(...)):
         "message": "your token has been generated successfully",
         "Canary_Token": generated_auth,
         "Token_ID": token_id,
-        "Token_Name": data.name
+        "Token_Name": data.name,
+        "auth_string":auth_string
     }

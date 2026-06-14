@@ -60,22 +60,13 @@ def send_security_alert(user_email: str, token_name: str, attacker_ip: str, user
 
 
 # ==========================================
-# 1. WELCOME ENDPOINT
-# ==========================================
-@router.get('/', dependencies=[Depends(ratelimiter)])
-def welcome_message():
-     """Simple health check and welcome route for the canary setup."""
-     logger.info("Canary route Has been called")
-     return {"message": "Welcome to canary route this is where you create fetch your canary tokens"}
-
-
-# ==========================================
 # 2. CANARY TRIGGER / HONEYPOT ENDPOINT
 # ==========================================
 @router.get("/trigger/{token_id}", dependencies=[Depends(ratelimiter)])
 async def trigger_canary(token_id: str, request: Request, background_tasks: BackgroundTasks):
+    """Intercepts unauthorized interaction hits, extracts tracking data, updates Redis state, and fires alerts."""
     try:
-     """Intercepts unauthorized interaction hits, extracts tracking data, updates Redis state, and fires alerts."""
+    
      
      # Fetch raw data payload out of Redis
      raw_token_data = redis_connect.get(f"canary:token:{token_id}")
