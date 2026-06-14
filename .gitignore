@@ -23,6 +23,7 @@ venv.bak/
 # --- Environment Secrets (CRITICAL) ---
 # Never commit your .env file as it contains API keys and database credentials.
 .env
+.env.template
 .env.local
 .env.*.local
 
