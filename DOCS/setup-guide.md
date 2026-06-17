@@ -274,6 +274,7 @@ Background email tasks run in-process within the same serverless invocation.
 
 ## Next Steps
 
+- Review [authentication.md](./authentication.md) for per-token `auth_string` usage on fetch and delete routes.
 - Review [architecture.md](./architecture.md) for system design and request flow.
 - Review [api-reference.md](./api-reference.md) for full endpoint specifications.
 - Review [design-decisions.md](./design-decisions.md) for engineering rationale.

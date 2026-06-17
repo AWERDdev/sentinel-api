@@ -4,6 +4,8 @@ Base URL (local default): `http://127.0.0.1:8000`
 
 Most canary routes share the prefix `/canary`. **All endpoints** listed below are rate-limited via the shared `ratelimiter` dependency.
 
+> **New to auth?** Read [authentication.md](./authentication.md) for the difference between `auth_string` (owner secret) and `Canary_Token` (deployable decoy).
+
 Interactive OpenAPI UI: `/docs` (FastAPI auto-generated)  
 Custom docs pointer: `/canary/docs` (links to Git repository)
 

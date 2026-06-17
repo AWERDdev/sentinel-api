@@ -130,6 +130,8 @@ The trigger endpoint is intentionally **unauthenticated** so any party who disco
 
 `utils/canary_verify.py` loads the token from Redis and compares the path `auth_string` to the stored owner secret. Mismatch returns `403 Forbidden`. This is path-parameter API-key style auth, not JWT or global middleware.
 
+For a user-facing guide (including the `auth_string` vs `Canary_Token` distinction), see [authentication.md](./authentication.md).
+
 ---
 
 ## Request Flow: Token Generation → Trigger Interception

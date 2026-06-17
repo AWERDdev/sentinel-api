@@ -53,6 +53,7 @@ For full setup steps, environment variables, and Redis verification, see the [Se
 | Document | Description |
 |----------|-------------|
 | [Architecture](DOCS/architecture.md) | System design, project structure, FastAPI and Redis roles, request flow from token generation to trigger interception |
+| [Authentication](DOCS/authentication.md) | Per-token `auth_string` secrets — what they are, which routes need them, and common mistakes |
 | [API Reference](DOCS/api-reference.md) | Endpoint specifications — methods, request/response examples, status codes, and lifecycle roles |
 | [Setup Guide](DOCS/setup-guide.md) | Environment configuration, local execution, Redis connectivity checks, and troubleshooting |
 | [Design Decisions](DOCS/design-decisions.md) | Engineering rationale — `BackgroundTasks`, token validation, honeypot deception strategy, and more |
@@ -62,14 +63,16 @@ For full setup steps, environment variables, and Redis verification, see the [Se
 
 ## API overview
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| `POST` | `/canary/generate-token` | Create a new canary token |
-| `GET` | `/canary/fetch/id/{token_id}` | Retrieve token by UUID |
-| `GET` | `/canary/fetch/name/{name}` | Retrieve token by name |
-| `GET` | `/canary/trigger/{token_id}` | Honeypot tripwire (attacker-facing) |
-| `DELETE` | `/canary/delete/id/{token_id}` | Delete token by UUID |
-| `DELETE` | `/canary/delete/name/{token_name}` | Delete token by name |
+Fetch and delete routes require the owner secret (`auth_string`) returned at token creation. See [Authentication](DOCS/authentication.md).
+
+| Method | Endpoint | Auth | Purpose |
+|--------|----------|------|---------|
+| `POST` | `/canary/generate-token` | No | Create a new canary token |
+| `GET` | `/canary/fetch/id/{token_id}/{auth_string}` | Owner secret | Retrieve token by UUID |
+| `GET` | `/canary/fetch/name/{name}/{auth_string}` | Owner secret | Retrieve token by name |
+| `GET` | `/canary/trigger/{token_id}` | No | Honeypot tripwire (attacker-facing) |
+| `DELETE` | `/canary/delete/id/{token_id}/{auth_string}` | Owner secret | Delete token by UUID |
+| `DELETE` | `/canary/delete/name/{name}/{auth_string}` | Owner secret | Delete token by name |
 
 Interactive OpenAPI docs: `http://127.0.0.1:8000/docs` (when the server is running).
 
@@ -109,9 +112,10 @@ While implementing or changing API behavior:
 
 ```text
 1. Start Redis + API (see Setup Guide above)
-2. Import canary_generation_tests.json into Postman → run health + generation tests
-3. Walk through canary_test_cases.md for fetch / trigger / delete
-4. Compare responses with canaryTokens.json when validating output shape
+2. POST /canary/generate-token → save Token_ID and auth_string
+3. Import canary_generation_tests.json into Postman → run generation, then lifecycle tests
+4. Walk through canary_test_cases.md for fetch / trigger / delete (with auth_string in URLs)
+5. Compare responses with canaryTokens.json when validating output shape
 ```
 
 Full details, file descriptions, and tips: [test-fixtures README](test-fixtures/README.md).
